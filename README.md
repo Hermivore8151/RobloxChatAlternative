@@ -9,10 +9,10 @@ If you are on windows, it is pretty much just:
 4. You are ready to chat
 
 If you are on linux, You must download the required libaries for python (and goes without saying, you need python, I tested with python 3.11):
-`PyQt6`
-`httpx`
-`websockets`
-`keyboard` (optional)
+\n `PyQt6`
+\n`httpx`
+\n `websockets`
+\n `keyboard` (optional)
 and then download source.py
 
 # Verification
@@ -31,6 +31,7 @@ Create an issue if you would like this.
 Rate-limits are enforced on the server, to help prevent spamming.
 
 If you want to hopefully get automod in the near future, you can help me with donations:
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/L3L71K5ZBB)
 
 # Features
@@ -58,7 +59,7 @@ Now, the interesting part, features:
    As for installation on linux, see `Downloading and Usage`
 
 
-The UI is pretty simple, here is the settings menu and the chat next to it, with text present
+The UI is pretty simple, here is the settings menu and the chat next to it, with text present:
 <img width="900" height="817" alt="{3B8B7131-82BA-4696-BBEF-04477CF673AF}" src="https://github.com/user-attachments/assets/c83ca8b5-daa1-4993-8286-bf7b604da873" />
 
 # The boring parts
