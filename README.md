@@ -75,7 +75,7 @@ Usage of the program infers acceptance of these terms.
 If you want to make your own client, feel free. This software is AGPL, but the API itself is pretty much free use.
 Happy messaging!
 
-As for the usage of AI, since that seems to be what people want to know, the UI components are widgets are AI assisted, since I suck at UI, however the logic and the webserver that handles all of the data is hand written, with little to no AI usage. If AI was used, it was most likely for research.
+As for the usage of AI, since that seems to be what people want to know, the UI components and widgets are AI assisted, since I suck at UI, however the logic and the webserver that handles all of the data is hand written, with little to no AI usage. If AI was used, it was most likely for research.
 
-If you need support or want information, message me on discord: @hermivore
+If you need support or want information, message me on discord: `@hermivore`  
 or join my server: https://discord.gg/7AY23zTMn7
