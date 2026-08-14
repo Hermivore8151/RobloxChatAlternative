@@ -9,10 +9,10 @@ If you are on windows, it is pretty much just:
 4. You are ready to chat
 
 If you are on linux, You must download the required libaries for python (and goes without saying, you need python, I tested with python 3.11):
-\n `PyQt6`
-\n`httpx`
-\n `websockets`
-\n `keyboard` (optional)
+`PyQt6`  
+`httpx`  
+`websockets`  
+`keyboard` (optional)  
 and then download source.py
 
 # Verification
