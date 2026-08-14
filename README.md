@@ -30,6 +30,8 @@ Create an issue if you would like this.
 
 Rate-limits are enforced on the server, to help prevent spamming.
 
+As for your data in transfer, it uses a WSS under the hood during messaging, and HTTPS for verification, meaning that it is end-to-end encrypted
+
 If you want to hopefully get automod in the near future, you can help me with donations:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/L3L71K5ZBB)
@@ -72,5 +74,8 @@ Your IP and messages sent are removed from memory once the chatroom you was in h
 Usage of the program infers acceptance of these terms.
 If you want to make your own client, feel free. This software is AGPL, but the API itself is pretty much free use.
 Happy messaging!
-If you need support, message me on discord: @hermivore
+
+As for the usage of AI, since that seems to be what people want to know, the UI components are widgets are AI assisted, since I suck at UI, however the logic and the webserver that handles all of the data is hand written, with little to no AI usage. If AI was used, it was most likely for research.
+
+If you need support or want information, message me on discord: @hermivore
 or join my server: https://discord.gg/7AY23zTMn7
