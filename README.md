@@ -27,7 +27,7 @@ It also means that your messages will not be hidden if someone else has the togg
 
 Here is a demonstration of the verification process:
 
-[verification.webm](https://github.com/user-attachments/assets/5798cad1-6a4b-4bbd-adbb-3e6fb2819b5b)  
+<img width="1920" height="1080" alt="verification" src="https://github.com/user-attachments/assets/a2b0ee85-23b1-4e45-b173-3a87cf778045" />  
 
 # Safety
 So, I'm a one man army, And as such, I cannot moderate these chats. So I leave that to you, with the power of votekicks!
