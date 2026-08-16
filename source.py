@@ -1,8 +1,9 @@
 """
-2.3.1
-- Finally fixed resizing
-- Auto-hide feature now mirrors last state
-- Probably the final version?
+2.4.0
+- Switch auth systems since roblox decided to fuck me in the ass
+    - This uses trying to add a set of accounts on the server
+- Now requires you to friend a random roblox account as a proof of ownership (POO haha)
+- Uses jwt for authentication, does mean 30 day login periods though :(
 """
 import sys
 import threading
@@ -13,6 +14,7 @@ import re
 import os
 import html
 from pathlib import Path
+import webbrowser
 
 try:
     import httpx
@@ -22,12 +24,11 @@ except ImportError as e:
 
 try:
     import websockets.sync.client as ws_sync
-    import websockets.exceptions
 except ImportError as e:
     input(str(e))
     sys.exit(1)
 
-# Optional global hotkey support.
+# Optional global hotkey support
 try:
     import keyboard
     KEYBOARD_AVAILABLE = True
@@ -51,11 +52,11 @@ from PyQt6.QtGui import (
 
 if os.name == "nt":
     import ctypes
-    import ctypes.wintypes
 else:
     ctypes = None
 
-# ─── Configuration & Themes ──────────────────────────────────────────────────
+# region Configuration
+# (that cant be a configuration in settings)
 
 CONFIG_FILE = Path.home() / ".roblox_chat_config.json"
 TOKEN_FILE_DEFAULT = Path.home() / ".roblox_chat_token"
@@ -190,9 +191,9 @@ def force_foreground_window(hwnd: int):
     except Exception:
         pass
 
-# ─── Log Parsing & Token Management ──────────────────────────────────────────
+# region Log Parser
 
-_RE_UID = re.compile(r"userid:(\d+)", re.I)
+_RE_UID = re.compile(r"userid:(\d+)", re.I) # isn't needed anymore, but its 5am so ill clean it up later
 _RE_UUID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I
 )
@@ -205,9 +206,12 @@ def _load_stored_token(config: dict) -> dict:
         return {}
 
 
-def _save_stored_token(config: dict, user_id: int, token: str):
+def _save_stored_token(config: dict, key: str, token: str | None):
     stored = _load_stored_token(config)
-    stored[str(user_id)] = token
+    if token is None:
+        stored.pop(str(key), None)
+    else:
+        stored[str(key)] = token
     get_token_file(config).write_text(json.dumps(stored), encoding="utf-8")
 
 
@@ -255,18 +259,19 @@ def parse_latest_log(config: dict) -> tuple[str | None, str | None]:
         return None, None
 
 
-# ─── Chat Client ─────────────────────────────────────────────────────────────
+# region Chat Client
 
 API_BASE = "https://hermivore.cat"
 WS_BASE = "wss://hermivore.cat"
 
-
 class ChatClient:
-    def __init__(self, server_id: str, user_id: int, config: dict):
+    def __init__(self, server_id: str, config: dict):
         self.config = config
         self.server_id = server_id
-        self.user_id = user_id
-        self.name = self.room_id = self.token = self.verify_code = None
+        self.user_id = None
+        self.name = None
+        self.room_id = None
+        self.token = None
         self.verified = False
 
         self._ws = None
@@ -279,28 +284,30 @@ class ChatClient:
         self._watcher_thread = None
 
         stored = _load_stored_token(self.config)
-        self.client_token = stored.get(str(user_id))
+        self.session_token = stored.get("backend_session_jwt")
 
     def connect(self) -> bool:
-        data = self._handshake(client_token=self.client_token)
-        if data is None:
+        if not self.session_token:
             return False
 
-        self.verified = data.get("verified", False)
-        self.verify_code = data.get("verify_code")
+        data = self._handshake()
+        if data is None or data.get("error"):
+            if data and "Invalid session" in data.get("reason", ""):
+                self.session_token = None
+                _save_stored_token(self.config, "backend_session_jwt", None)
+            return False
 
-        if "client_token" in data:
-            self.client_token = data["client_token"]
-            _save_stored_token(self.config, self.user_id, self.client_token)
-
-        self.name = data["name"]
-        self.room_id = data["room_id"]
-        self.token = data["ws_token"]
+        # The backend now provides these!
+        self.user_id = data.get("user_id")
+        self.name = data.get("name")
+        self.room_id = data.get("room_id")
+        self.token = data.get("ws_token")
+        self.verified = True
 
         url = (
             f"{WS_BASE}/api/roblox/chat/room/{self.room_id}"
             f"?token={self.token}&user_id={self.user_id}"
-            f"&name={self.name}&verified={int(self.verified)}"
+            f"&name={self.name}&verified=1"
         )
 
         try:
@@ -319,34 +326,44 @@ class ChatClient:
         self._watcher_thread.start()
         return True
 
+    def _handshake(self) -> dict | None:
+        body = {"session_token": self.session_token}
+        try:
+            resp = httpx.post(
+                f"{API_BASE}/api/roblox/chat/{self.server_id}",
+                json=body,
+                timeout=10,
+            )
+            if resp.status_code == 401:
+                # Extract the specific reason from the backend!
+                data = resp.json()
+                return {"error": True, "reason": data.get("reason", "Invalid session")}
+            return resp.json()
+        except Exception as e:
+            print(f"Handshake failed: {e}")
+            return None
+
     def _reconnect(self, retries: int = 5, backoff: float = 2.0):
         for attempt in range(1, retries + 1):
             time.sleep(backoff * attempt)
+            try: self._ws.close()
+            except: pass
 
-            try:
-                self._ws.close()
-            except Exception:
-                pass
-
-            data = self._handshake(client_token=self.client_token)
+            data = self._handshake()
             if data is None or data.get("error"):
                 continue
 
-            if "client_token" in data:
-                self.client_token = data["client_token"]
-                _save_stored_token(self.config, self.user_id, self.client_token)
-
-            self.name = data["name"]
-            self.room_id = data["room_id"]
-            self.token = data["ws_token"]
-            self.verified = data.get("verified", False)
-            self.verify_code = data.get("verify_code")
+            self.user_id = data.get("user_id")
+            self.name = data.get("name")
+            self.room_id = data.get("room_id")
+            self.token = data.get("ws_token")
 
             try:
+                # Added verified=1 here to match the new connect() behavior
                 url = (
                     f"{WS_BASE}/api/roblox/chat/room/{self.room_id}"
                     f"?token={self.token}&user_id={self.user_id}"
-                    f"&name={self.name}"
+                    f"&name={self.name}&verified=1"
                 )
                 self._ws = ws_sync.connect(url)
             except Exception:
@@ -359,80 +376,37 @@ class ChatClient:
         self._running = False
         self._recv_queue.put({"type": "system", "text": "Disconnected", "ts": time.time()})
 
-    def _handshake(self, client_token=None, action=None) -> dict | None:
-        body = {"user_id": self.user_id}
-        if client_token:
-            body["client_token"] = client_token
-        if action:
-            body["action"] = action
-
-        try:
-            resp = httpx.post(
-                f"{API_BASE}/api/roblox/chat/{self.server_id}",
-                json=body,
-                timeout=10,
-            )
-            return resp.json()
-        except Exception as e:
-            print(f"Handshake failed: {e}")
-            return None
-
     def _watch_logs(self, interval: float = 3.0):
         last_path = None
         last_size = None
 
         while self._running:
             time.sleep(interval)
-
             path = find_latest_log(self.config)
-            if path is None:
-                continue
+            if path is None: continue
+            
+            try: size = path.stat().st_size
+            except OSError: continue
 
-            try:
-                size = path.stat().st_size
-            except OSError:
-                continue
+            if path == last_path and size == last_size: continue
+            last_path, last_size = path, size
 
-            if path == last_path and size == last_size:
-                continue
+            try: text = path.read_text(errors="replace", encoding="utf-8")
+            except: continue
 
-            last_path = path
-            last_size = size
-
-            try:
-                text = path.read_text(errors="replace", encoding="utf-8")
-            except Exception:
-                continue
-
-            new_uid, new_sid = parse_log_text(text, self.config)
+            # We ONLY care about server_id (Job ID) changes now
+            _, new_sid = parse_log_text(text, self.config)
 
             if new_sid is None or new_sid == self.server_id:
                 continue
 
-            if new_uid and new_uid != str(self.user_id):
-                self.user_id = int(new_uid)
-                self.client_token = _load_stored_token(self.config).get(str(self.user_id))
-
             self.server_id = new_sid
-
-            self._recv_queue.put({
-                "type": "server_change",
-                "server_id": new_sid,
-                "user_id": self.user_id,
-                "ts": time.time()
-            })
-
+            self._recv_queue.put({"type": "server_change", "server_id": new_sid, "ts": time.time()})
             self._recv_queue.put({"type": "clear"})
-            self._recv_queue.put({
-                "type": "system",
-                "text": "Switching server…",
-                "ts": time.time()
-            })
-
-            try:
-                self._ws.close()
-            except Exception:
-                pass
+            self._recv_queue.put({"type": "system", "text": "Switching server…", "ts": time.time()})
+            
+            try: self._ws.close()
+            except: pass
 
     def _recv_loop(self):
         while self._running:
@@ -493,7 +467,7 @@ class ChatClient:
                 pass
 
 
-# ─── PyQt UI Components ──────────────────────────────────────────────────────
+# region PyQt UI Elements
 
 class HotkeyEdit(QLineEdit):
     def __init__(self, text: str = ""):
@@ -742,8 +716,8 @@ class ChatScrollArea(QScrollArea):
             sender_id = str(msg.get("user_id", ""))
             is_verified = msg.get("verified", False)
 
-            if config.get("hide_unverified") and not is_verified:
-                return
+            # if config.get("hide_unverified") and not is_verified:
+            #     return
 
             blocked = config.get("blocked_users", [])
             if sender in blocked or sender_id in blocked:
@@ -1044,28 +1018,35 @@ class ResizeEventFilter(QObject):
 
 
 class VerifyWorker(QObject):
-    finished = pyqtSignal(bool)
+    finished = pyqtSignal(bool, str)  # Changed to accept (success, token)
 
-    def __init__(self, client: ChatClient):
+    def __init__(self, session_id: str):
         super().__init__()
-        self.client = client
+        self.session_id = session_id
 
     def run(self):
-        data = self.client._handshake(action="verify")
-
-        if data and data.get("client_token"):
-            self.client.client_token = data["client_token"]
-            self.client.verified = True
-            _save_stored_token(self.client.config, self.client.user_id, data["client_token"])
-
+        while True:
             try:
-                self.client._ws.close()
+                resp = httpx.get(
+                    f"{API_BASE}/api/roblox/verify/status/{self.session_id}",
+                    timeout=10
+                ).json()
             except Exception:
-                pass
+                time.sleep(2)
+                continue
 
-            self.finished.emit(True)
-        else:
-            self.finished.emit(False)
+            status = resp.get("status")
+            if status == "ok":
+                token = resp.get("session_token", "")
+                # Save it to disk for future app restarts
+                _save_stored_token({"token_file_override": ""}, "backend_session_jwt", token)
+                self.finished.emit(True, token)
+                return
+            elif status in ("expired", "error"):
+                self.finished.emit(False, "")
+                return
+            else:  # pending
+                time.sleep(2)
 
 
 def create_tray_icon(theme: dict) -> QIcon:
@@ -1152,9 +1133,9 @@ class SettingsDialog(QDialog):
         self.theme_combo.setCurrentText(config.get("theme", "Dark Modern"))
         layout.addWidget(self.theme_combo)
 
-        self.hide_unverified_cb = QCheckBox("Hide unverified users")
-        self.hide_unverified_cb.setChecked(config.get("hide_unverified", False))
-        layout.addWidget(self.hide_unverified_cb)
+        # self.hide_unverified_cb = QCheckBox("Hide unverified users")
+        # self.hide_unverified_cb.setChecked(config.get("hide_unverified", False))
+        # layout.addWidget(self.hide_unverified_cb)
 
         self.compact_mode_cb = QCheckBox("Compact mode ([time] [name] [message])")
         self.compact_mode_cb.setChecked(config.get("compact_mode", False))
@@ -1489,7 +1470,7 @@ class ChatWindow(QMainWindow):
 
         self.hotkey_pressed.emit()
 
-    # ─── Tray / Visibility ───────────────────────────────────────────────
+    # region Tray / Visibility
 
     def setup_tray(self):
         if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -1586,7 +1567,7 @@ class ChatWindow(QMainWindow):
         self.client.disconnect()
         QApplication.quit()
 
-    # ─── Global Hotkey ───────────────────────────────────────────────────
+    # region Global Hotkey
 
     def register_hotkey(self):
         if not KEYBOARD_AVAILABLE or keyboard is None:
@@ -1628,18 +1609,46 @@ class ChatWindow(QMainWindow):
 
         self.register_hotkey()
 
-    # ─── Banners / Timers ────────────────────────────────────────────────
+    # region Banners / Timers
 
     def init_banners(self):
-        if not self.client.verified and self.client.verify_code:
-            self.banner_deadline = time.time() + CHALLENGE_TTL
-            self.verify_banner.lbl.setText(
-                f"Unverified — add to bio: {self.client.verify_code}"
-            )
-            self.verify_banner.show()
+        if not self.client._running:
+            self.start_verification_flow()
         else:
             self.banner_deadline = None
             self.verify_banner.hide()
+
+    def start_verification_flow(self):
+        if not self.banner_timer.isActive():
+            self.banner_timer.start(1000)
+
+        try:
+            data = httpx.post(f"{API_BASE}/api/roblox/verify/challenge", timeout=10).json()
+        except Exception:
+            self.verify_banner.lbl.setText("Failed to contact verify server")
+            self.verify_banner.show()
+            return
+
+        if "error" in data:
+            self.verify_banner.lbl.setText(data.get("reason", "Verify error"))
+            self.verify_banner.show()
+            return
+
+        QApplication.clipboard().setText(data["bot_name"])
+        webbrowser.open(f"https://www.roblox.com/users/{data['bot_id']}/profile")
+
+        self.banner_deadline = time.time() + data["ttl"]
+        self.verify_banner.lbl.setText(
+            f"Add {data['bot_name']} (copied to clipboard), then wait..."
+        )
+        self.verify_banner.show()
+
+        self.verify_thread = QThread()
+        self.verify_worker = VerifyWorker(data["session_id"])
+        self.verify_worker.moveToThread(self.verify_thread)
+        self.verify_thread.started.connect(self.verify_worker.run)
+        self.verify_worker.finished.connect(self.on_verify_finished)
+        self.verify_thread.start()
 
     def tick_banners(self):
         if self.verify_banner.isVisible() and self.banner_deadline:
@@ -1648,20 +1657,13 @@ class ChatWindow(QMainWindow):
             if remaining > 0:
                 mins, secs = divmod(int(remaining), 60)
                 self.verify_banner.lbl.setText(
-                    f"Unverified — add to bio: {self.client.verify_code}  ({mins}:{secs:02d})"
+                    f"Add friend (name copied to clipboard)  ({mins}:{secs:02d})"
                 )
             else:
-                self.verify_banner.lbl.setText("Verifying...")
+                self.verify_banner.lbl.setText("Verification timed out - retrying...")
                 self.banner_timer.stop()
-
-                self.verify_thread = QThread()
-                self.verify_worker = VerifyWorker(self.client)
-                self.verify_worker.moveToThread(self.verify_thread)
-
-                self.verify_thread.started.connect(self.verify_worker.run)
-                self.verify_worker.finished.connect(self.on_verify_finished)
-
-                self.verify_thread.start()
+                # Automatically retry after 2 seconds
+                QTimer.singleShot(2000, self.start_verification_flow)
 
         if self.vk_widget.isVisible() and self.vk_widget.deadline:
             remaining = self.vk_widget.deadline - time.time()
@@ -1672,35 +1674,29 @@ class ChatWindow(QMainWindow):
                 self.vk_widget.timer_lbl.setText("0s")
                 self.resolve_votekick({"result": "expired", "target": self.vk_widget.target})
 
-    def on_verify_finished(self, success: bool):
+    def on_verify_finished(self, success: bool, token: str = ""):
         try:
             self.verify_thread.quit()
             self.verify_thread.wait()
         except Exception:
             pass
 
-        self.banner_timer.start()
-
-        if success:
-            self.verify_banner.lbl.setText("Verified ✓ Reconnecting...")
-            self.verify_banner.setStyleSheet(
-                f"""
-                QFrame {{ background-color: {self.theme['surface_alt']}; border-radius: 10px; }}
-                QLabel {{ color: #4ade80; font-weight: bold; background: transparent; font-size: 12px; }}
-                """
-            )
-            QTimer.singleShot(3000, self.verify_banner.hide)
+        if success and token:
+            self.verify_banner.lbl.setText("Verified ✓ Connecting...")
+            self.client.session_token = token
+            # Ensure it's saved to the ACTUAL config's token file path for next launch
+            _save_stored_token(self.client.config, "backend_session_jwt", token)
+            
+            if self.client.connect():
+                self.verify_banner.lbl.setText("Connected!")
+                QTimer.singleShot(2000, self.verify_banner.hide)
+            else:
+                self.verify_banner.lbl.setText("Verified, but connection failed.")
         else:
-            self.verify_banner.lbl.setText("Verification expired — reconnect to try again")
-            self.verify_banner.setStyleSheet(
-                f"""
-                QFrame {{ background-color: {self.theme['surface_alt']}; border-radius: 10px; }}
-                QLabel {{ color: {self.theme['error']}; font-weight: bold; background: transparent; font-size: 12px; }}
-                """
-            )
-            QTimer.singleShot(5000, self.verify_banner.hide)
+            self.verify_banner.lbl.setText("Verification expired - retrying...")
+            QTimer.singleShot(2000, self.start_verification_flow)
 
-    # ─── Messages ────────────────────────────────────────────────────────
+    # region Messages
 
     def poll_messages(self):
         for msg in self.client.poll():
@@ -1786,7 +1782,7 @@ class ChatWindow(QMainWindow):
         QTimer.singleShot(4000, self.vk_widget.hide)
         self.vk_widget.deadline = None
 
-    # ─── Input ───────────────────────────────────────────────────────────
+    # region Input
 
     def on_send(self):
         text = self.entry.text().strip()
@@ -1813,7 +1809,7 @@ class ChatWindow(QMainWindow):
             elif self._prev_state == "minimized":
                 self.showMinimized() # Back to taskbar
             else:
-                # Was visible but unfocused: drop to bottom of Z-order and give focus back to the game
+                # Was visible but unfocused, so we drop to bottom of Z-order and give focus back to the game
                 self.lower()
                 self.clearFocus()
                 if os.name == "nt" and self._prev_hwnd:
@@ -1851,7 +1847,7 @@ class ChatWindow(QMainWindow):
                 "reason": reason
             })
 
-    # ─── Window Events ───────────────────────────────────────────────────
+    # region Window events
 
     def closeEvent(self, event):
         self.unregister_hotkey()
@@ -1863,30 +1859,25 @@ class ChatWindow(QMainWindow):
         event.accept()
 
 
-# ─── Entrypoint ──────────────────────────────────────────────────────────────
+# region Start
 
 if __name__ == "__main__":
     config = load_config()
-    user_id, server_id = parse_latest_log(config)
+    _, server_id = parse_latest_log(config)
 
-    if server_id is None or user_id is None:
+    if server_id is None:
         print("No active Roblox session found. Make sure Roblox is running.")
         input("Press enter to exit.")
         sys.exit(1)
 
-    print(f"Detected user {user_id} in server {server_id}")
+    print(f"Detected server {server_id}")
 
-    client = ChatClient(server_id, int(user_id), config)
-    if not client.connect():
-        print("Failed to connect.")
-        input("Press enter to exit.")
-        sys.exit(1)
-
-    print(f"Connected as {client.name} → room {client.room_id}")
+    client = ChatClient(server_id, config)
+    client.connect() # Will fail silently if no JWT, UI will handle it
 
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
-
+    
     font = QFont("Segoe UI", 10)
     if not font.exactMatch():
         font = QFont("Inter", 10)
@@ -1896,8 +1887,8 @@ if __name__ == "__main__":
         font = QFont("system-ui", 10)
 
     app.setFont(font)
-
+    
     window = ChatWindow(client, config)
     window.show()
-
+    
     sys.exit(app.exec())
