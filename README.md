@@ -2,25 +2,28 @@ My attempt at making an alternative to that chat that roblox uses.
 Uses PyQt6 (And as such, is AGPL licence)
 
 # Downloading and Usage
-If you are on windows, it is pretty much just:
-1. download the executable
-2. open roblox
-3. open the executable
-4. You are ready to chat
+If you are on windows, it is pretty much just:  
+1. download the executable  
+2. open roblox  
+3. open the executable  
+4. Verify  
+5. You are ready to chat  
 
 If you are on linux, You must download the required libaries for python (and goes without saying, you need python, I tested with python 3.11):
 `PyQt6`  
 `httpx`  
 `websockets`  
 `keyboard` (optional)  
-and then download source.py
+and then download and run source.py
+From there follow steps 2. onward.
 
 # Verification
-To verify, put the code you are given in the banner in your roblox bio somewhere (it can be removed after verification)
-You can edit your bio by going to your roblox profile.
+To verify, you must send a friend request to the account you are re-directed to. The request will be declined by the account and you will be authorised.
 
-Verifying gives you access to votekick people, and removes the red background of your name. Indicating you are who you say.
+Verifying gives you access to votekick people, ~~and removes the red background of your name~~*. Indicating you are who you say.
 It also means that your messages will not be hidden if someone else has the toggle to hide other users.
+
+*As of 2.4.0 you are now fundamentally required to authorise to chat via the client.
 
 # Safety
 So, I'm a one man army, And as such, I cannot moderate these chats. So I leave that to you, with the power of votekicks!
@@ -50,13 +53,14 @@ Now, the interesting part, features:
    As mentioned above, since I can't easily moderate, I provide you with votekicks, so that if you spot a bad actor, you can deal with them yourself, without relying on an automated system!
 
 5. Blocking and hiding
-   Since obviously, this could provide a way for not-so-nice people to talk to you, as well as votekicks, The client also allows you to hide unverified people from your view, and add users to a block list, which means you cannot see what they say.
+   Since obviously, this could provide a way for not-so-nice people to talk to you, as well as votekicks, ~~The client also allows you to hide unverified people from your view~~**, and add users to a block list, which means you cannot see what they say.
+   ** Unverified clients can no-longer talk due to how authentication must be handled.
 
-6. Hotkeys
+7. Hotkeys
    To allow for easy usage, you can bind a hotkey (I personally bound Shift + .) to focus the chat without having to click on it, and also features some neat auto-hiding features.
    Minimising the application will send it to the task tray, and closing it, will, obviously, close it.
 
-7. Support
+8. Support
    Support for **FLATPAK** (yes, linux support!) sober. If you install separately, you may have to set an override for the log directory (in settings)
    As for installation on linux, see `Downloading and Usage`
 
