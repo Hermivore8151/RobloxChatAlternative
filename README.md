@@ -9,7 +9,7 @@ If you are on windows, it is pretty much just:
 4. Verify  
 5. You are ready to chat  
 
-If you are on linux, You must download the required libaries for python (and goes without saying, you need python, I tested with python 3.11):
+If you are on linux, You must download the required libaries for python (and goes without saying, you need python, I tested with python 3.11):  
 `PyQt6`  
 `httpx`  
 `websockets`  
