@@ -1,9 +1,6 @@
 """
-2.4.0
-- Switch auth systems since roblox decided to fuck me in the ass
-    - This uses trying to add a set of accounts on the server
-- Now requires you to friend a random roblox account as a proof of ownership (POO haha)
-- Uses jwt for authentication, does mean 30 day login periods though :(
+2.4.1
+- Added oauth fallback
 """
 import sys
 import threading
@@ -91,6 +88,7 @@ THEMES = {
 
 DEFAULT_CONFIG = {
     "theme": "Dark Modern",
+    # "auth_method": "oauth", # so like dont uncomment this unless you REALLY know what you're doing. This application isn't really. ToS complaint
     "hide_unverified": False,
     "compact_mode": False,
     "show_on_server_change": True,
@@ -1018,19 +1016,16 @@ class ResizeEventFilter(QObject):
 
 
 class VerifyWorker(QObject):
-    finished = pyqtSignal(bool, str)  # Changed to accept (success, token)
+    finished = pyqtSignal(bool, str)
 
-    def __init__(self, session_id: str):
+    def __init__(self, status_url: str):
         super().__init__()
-        self.session_id = session_id
+        self.status_url = status_url  # Full URL, not just session ID
 
     def run(self):
         while True:
             try:
-                resp = httpx.get(
-                    f"{API_BASE}/api/roblox/verify/status/{self.session_id}",
-                    timeout=10
-                ).json()
+                resp = httpx.get(self.status_url, timeout=10).json()
             except Exception:
                 time.sleep(2)
                 continue
@@ -1038,7 +1033,6 @@ class VerifyWorker(QObject):
             status = resp.get("status")
             if status == "ok":
                 token = resp.get("session_token", "")
-                # Save it to disk for future app restarts
                 _save_stored_token({"token_file_override": ""}, "backend_session_jwt", token)
                 self.finished.emit(True, token)
                 return
@@ -1622,8 +1616,11 @@ class ChatWindow(QMainWindow):
         if not self.banner_timer.isActive():
             self.banner_timer.start(1000)
 
+        method = self.config.get("auth_method", "friend")  # "friend" | "oauth" | or auto-fallback
+        endpoint = "/api/roblox/verify/challenge" if method == "friend" else "/api/roblox/oauth/challenge"
+
         try:
-            data = httpx.post(f"{API_BASE}/api/roblox/verify/challenge", timeout=10).json()
+            data = httpx.post(f"{API_BASE}{endpoint}", timeout=10).json()
         except Exception:
             self.verify_banner.lbl.setText("Failed to contact verify server")
             self.verify_banner.show()
@@ -1634,17 +1631,22 @@ class ChatWindow(QMainWindow):
             self.verify_banner.show()
             return
 
-        QApplication.clipboard().setText(data["bot_name"])
-        webbrowser.open(f"https://www.roblox.com/users/{data['bot_id']}/profile")
+        if "bot_name" in data:
+            QApplication.clipboard().setText(data["bot_name"])
+            webbrowser.open(f"https://www.roblox.com/users/{data['bot_id']}/profile")
+            status_url = f"{API_BASE}/api/roblox/verify/status/{data['session_id']}"
+            self.verify_banner.lbl.setText(f"Add {data['bot_name']} (copied to clipboard), then wait...")
+
+        else:
+            webbrowser.open(data["auth_url"])
+            status_url = f"{API_BASE}/api/roblox/oauth/status/{data['session_id']}"
+            self.verify_banner.lbl.setText("Log in with Roblox in the browser...")
 
         self.banner_deadline = time.time() + data["ttl"]
-        self.verify_banner.lbl.setText(
-            f"Add {data['bot_name']} (copied to clipboard), then wait..."
-        )
         self.verify_banner.show()
 
         self.verify_thread = QThread()
-        self.verify_worker = VerifyWorker(data["session_id"])
+        self.verify_worker = VerifyWorker(status_url)
         self.verify_worker.moveToThread(self.verify_thread)
         self.verify_thread.started.connect(self.verify_worker.run)
         self.verify_worker.finished.connect(self.on_verify_finished)
