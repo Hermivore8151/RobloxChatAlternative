@@ -24,9 +24,11 @@ uv sync
 uv tool install .
 ```
 
-If `uv` shows a warning about the PATH variable, follow `uv`'s instructions (it should advise running `uv tool update-shell`), and restart your shell.
+If `uv` shows a warning about the PATH variable, follow `uv`'s instructions (if it advises running `uv tool update-shell`), and restart your shell.
 
 Please keep in mind, `uv tool update-shell` may not always work on Windows. If that's the case for you, see the workaround mentioned in https://github.com/astral-sh/uv/issues/17331.
+
+This will produce a functional standalone executable binary on both Windows and Linux (tested on Kali Linux and CachyOS in VirtualBox).
 
 # Verification
 To verify, put the code you are given in the banner in your roblox bio somewhere (it can be removed after verification)
