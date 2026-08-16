@@ -15,6 +15,19 @@ If you are on linux, You must download the required libaries for python (and goe
 `keyboard` (optional)  
 and then download source.py
 
+## Downloading from source via `uv`
+To download the project via `uv`, run:
+```bash
+git clone https://github.com/Hermivore8151/RobloxChatAlternative
+cd RobloxChatAlternative
+uv sync
+uv tool install .
+```
+
+If `uv` shows a warning about the PATH variable, follow `uv`'s instructions (it should advise running `uv tool update-shell`), and restart your shell.
+
+Please keep in mind, `uv tool update-shell` may not always work on Windows. If that's the case for you, see https://github.com/astral-sh/uv/issues/17331.
+
 # Verification
 To verify, put the code you are given in the banner in your roblox bio somewhere (it can be removed after verification)
 You can edit your bio by going to your roblox profile.

@@ -1865,7 +1865,7 @@ class ChatWindow(QMainWindow):
 
 # ─── Entrypoint ──────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
+def main():
     config = load_config()
     user_id, server_id = parse_latest_log(config)
 
@@ -1901,3 +1901,6 @@ if __name__ == "__main__":
     window.show()
 
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
