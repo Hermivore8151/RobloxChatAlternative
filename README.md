@@ -25,6 +25,10 @@ It also means that your messages will not be hidden if someone else has the togg
 
 *As of 2.4.0 you are now fundamentally required to authorise to chat via the client.
 
+Here is a demonstration of the verification process:
+
+<img width="1920" height="1080" alt="verification" src="https://github.com/user-attachments/assets/9ba3cc71-8c4e-4113-8e4b-d0b34abd5ad5" />  
+
 # Safety
 So, I'm a one man army, And as such, I cannot moderate these chats. So I leave that to you, with the power of votekicks!
 You can initiate a votekick by running `/votekick [username]` which will require half of the members in the lobby to accept it to votekick the person
@@ -65,8 +69,9 @@ Now, the interesting part, features:
    As for installation on linux, see `Downloading and Usage`
 
 
-The UI is pretty simple, here is the settings menu and the chat next to it, with text present:
-<img width="900" height="817" alt="{3B8B7131-82BA-4696-BBEF-04477CF673AF}" src="https://github.com/user-attachments/assets/c83ca8b5-daa1-4993-8286-bf7b604da873" />
+The UI is pretty simple, here is the settings menu and the chat next to it, with text present:  
+
+<img width="1093" height="773" alt="{0F562D19-FA2C-480F-9527-2D3BC70A6BCE}" src="https://github.com/user-attachments/assets/95dcc61a-1944-47dd-8467-95e9c6bbbb2a" />  
 
 # The boring parts
 For the adept that read the source code, you may realise that this fires API requests off to my API for the chat, which means that there must be a privacy policy and terms of usage
