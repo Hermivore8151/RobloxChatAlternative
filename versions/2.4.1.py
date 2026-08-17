@@ -1863,7 +1863,7 @@ class ChatWindow(QMainWindow):
 
 # region Start
 
-if __name__ == "__main__":
+def main():
     config = load_config()
     _, server_id = parse_latest_log(config)
 
@@ -1894,3 +1894,8 @@ if __name__ == "__main__":
     window.show()
     
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
+else:
+    raise ImportError()

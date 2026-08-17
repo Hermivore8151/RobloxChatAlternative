@@ -17,6 +17,21 @@ If you are on linux, You must download the required libaries for python (and goe
 and then download and run source.py
 From there follow steps 2. onward.
 
+## Downloading from source via `uv`
+To download the project via `uv`, run:
+```bash
+git clone https://github.com/Hermivore8151/RobloxChatAlternative
+cd RobloxChatAlternative
+uv sync
+uv tool install .
+```
+
+If `uv` shows a warning about the PATH variable, follow `uv`'s instructions (if it advises running `uv tool update-shell`), and restart your shell.
+
+Please keep in mind, `uv tool update-shell` may not always work on Windows. If that's the case for you, see the workaround mentioned in https://github.com/astral-sh/uv/issues/17331.
+
+This will produce a functional standalone executable binary on both Windows and Linux (tested on Kali Linux and CachyOS in VirtualBox).
+
 # Verification
 To verify, you must send a friend request to the account you are re-directed to. The request will be declined by the account and you will be authorised.
 

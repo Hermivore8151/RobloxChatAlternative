@@ -1,0 +1,6 @@
+# uv
+.python-version
+
+# Python
+*__pycache__/
+.venv/
