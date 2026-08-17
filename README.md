@@ -2,18 +2,20 @@ My attempt at making an alternative to that chat that roblox uses.
 Uses PyQt6 (And as such, is AGPL licence)
 
 # Downloading and Usage
-If you are on windows, it is pretty much just:
-1. download the executable
-2. open roblox
-3. open the executable
-4. You are ready to chat
+If you are on windows, it is pretty much just:  
+1. download the executable  
+2. open roblox  
+3. open the executable  
+4. Verify  
+5. You are ready to chat  
 
-If you are on linux, You must download the required libaries for python (and goes without saying, you need python, I tested with python 3.11):
+If you are on linux, You must download the required libaries for python (and goes without saying, you need python, I tested with python 3.11):  
 `PyQt6`  
 `httpx`  
 `websockets`  
 `keyboard` (optional)  
-and then download source.py
+and then download and run source.py
+From there follow steps 2. onward.
 
 ## Downloading from source via `uv`
 To download the project via `uv`, run:
@@ -31,11 +33,16 @@ Please keep in mind, `uv tool update-shell` may not always work on Windows. If t
 This will produce a functional standalone executable binary on both Windows and Linux (tested on Kali Linux and CachyOS in VirtualBox).
 
 # Verification
-To verify, put the code you are given in the banner in your roblox bio somewhere (it can be removed after verification)
-You can edit your bio by going to your roblox profile.
+To verify, you must send a friend request to the account you are re-directed to. The request will be declined by the account and you will be authorised.
 
-Verifying gives you access to votekick people, and removes the red background of your name. Indicating you are who you say.
+Verifying gives you access to votekick people, ~~and removes the red background of your name~~*. Indicating you are who you say.
 It also means that your messages will not be hidden if someone else has the toggle to hide other users.
+
+*As of 2.4.0 you are now fundamentally required to authorise to chat via the client.
+
+Here is a demonstration of the verification process:
+
+<img width="1920" height="1080" alt="verification" src="https://github.com/user-attachments/assets/a2b0ee85-23b1-4e45-b173-3a87cf778045" />  
 
 # Safety
 So, I'm a one man army, And as such, I cannot moderate these chats. So I leave that to you, with the power of votekicks!
@@ -65,19 +72,21 @@ Now, the interesting part, features:
    As mentioned above, since I can't easily moderate, I provide you with votekicks, so that if you spot a bad actor, you can deal with them yourself, without relying on an automated system!
 
 5. Blocking and hiding
-   Since obviously, this could provide a way for not-so-nice people to talk to you, as well as votekicks, The client also allows you to hide unverified people from your view, and add users to a block list, which means you cannot see what they say.
+   Since obviously, this could provide a way for not-so-nice people to talk to you, as well as votekicks, ~~The client also allows you to hide unverified people from your view~~**, and add users to a block list, which means you cannot see what they say.
+   ** Unverified clients can no-longer talk due to how authentication must be handled.
 
-6. Hotkeys
+7. Hotkeys
    To allow for easy usage, you can bind a hotkey (I personally bound Shift + .) to focus the chat without having to click on it, and also features some neat auto-hiding features.
    Minimising the application will send it to the task tray, and closing it, will, obviously, close it.
 
-7. Support
+8. Support
    Support for **FLATPAK** (yes, linux support!) sober. If you install separately, you may have to set an override for the log directory (in settings)
    As for installation on linux, see `Downloading and Usage`
 
 
-The UI is pretty simple, here is the settings menu and the chat next to it, with text present:
-<img width="900" height="817" alt="{3B8B7131-82BA-4696-BBEF-04477CF673AF}" src="https://github.com/user-attachments/assets/c83ca8b5-daa1-4993-8286-bf7b604da873" />
+The UI is pretty simple, here is the settings menu and the chat next to it, with text present:  
+
+<img width="1093" height="773" alt="{0F562D19-FA2C-480F-9527-2D3BC70A6BCE}" src="https://github.com/user-attachments/assets/95dcc61a-1944-47dd-8467-95e9c6bbbb2a" />  
 
 # The boring parts
 For the adept that read the source code, you may realise that this fires API requests off to my API for the chat, which means that there must be a privacy policy and terms of usage
