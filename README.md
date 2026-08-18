@@ -14,8 +14,13 @@ If you are on linux, You must download the required libaries for python (and goe
 `httpx`  
 `websockets`  
 `keyboard` (optional)  
-and then download and run source.py
-From there follow steps 2. onward.
+and then run:  
+```bash  
+git clone https://github.com/Hermivore8151/RobloxChatAlternative  
+cd RobloxChatAlternative  
+python main.py  
+```  
+From there follow steps 2 onward. The executable being main.py in this instance.
 
 ## Downloading from source via `uv`
 To download the project via `uv`, run:
