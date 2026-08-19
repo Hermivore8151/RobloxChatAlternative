@@ -1,6 +1,8 @@
 import queue, time, json, httpx, threading
 import websockets.sync.client as ws_sync
 
+from typing import Optional
+
 from config import _load_stored_token, _save_stored_token
 from log_parser import find_latest_log, parse_log_text
 from constants import API_BASE, WS_BASE
@@ -67,7 +69,7 @@ class ChatClient:
         self._watcher_thread.start()
         return True
 
-    def _handshake(self) -> dict | None:
+    def _handshake(self) -> Optional[dict]:
         body = {"session_token": self.session_token}
         try:
             resp = httpx.post(

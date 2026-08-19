@@ -1,6 +1,8 @@
 from pathlib import Path
 import re
 
+from typing import Optional
+
 from config import get_log_dir
 
 _RE_UID = re.compile(r"userid:(\d+)", re.I) # isn't needed anymore, but its 5am so ill clean it up later
@@ -8,7 +10,7 @@ _RE_UUID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I
 )
 
-def find_latest_log(config: dict) -> Path | None:
+def find_latest_log(config: dict) -> Optional[Path]:
     log_dir = get_log_dir(config)
     if not log_dir.exists():
         return None
@@ -16,7 +18,7 @@ def find_latest_log(config: dict) -> Path | None:
     return max(log_files, key=lambda f: f.stat().st_mtime) if log_files else None
 
 
-def parse_log_text(text: str, config: dict) -> tuple[str | None, str | None]:
+def parse_log_text(text: str, config: dict) -> tuple[Optional[str], Optional[str]]:
     join_marker = config.get("join_marker", "[flog::output] ! joining game").lower()
     load_marker = config.get("load_marker", "gamejoinloadtime").lower()
 
@@ -42,7 +44,7 @@ def parse_log_text(text: str, config: dict) -> tuple[str | None, str | None]:
     return user_id, server_id
 
 
-def parse_latest_log(config: dict) -> tuple[str | None, str | None]:
+def parse_latest_log(config: dict) -> tuple[Optional[str], Optional[str]]:
     path = find_latest_log(config)
     if path is None:
         return None, None

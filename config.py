@@ -1,5 +1,6 @@
 from pathlib import Path
 import os, json
+from typing import Optional
 
 CONFIG_FILE = Path.home() / ".roblox_chat_config.json"
 TOKEN_FILE_DEFAULT = Path.home() / ".roblox_chat_token"
@@ -87,7 +88,7 @@ def _load_stored_token(config: dict) -> dict:
         return {}
 
 
-def _save_stored_token(config: dict, key: str, token: str | None):
+def _save_stored_token(config: dict, key: str, token: Optional[str]):
     stored = _load_stored_token(config)
     if token is None:
         stored.pop(str(key), None)
